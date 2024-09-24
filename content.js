@@ -1,3 +1,5 @@
+
+// content.js
 let highlightedElements = [];
 let currentHighlightIndex = -1;
 
@@ -8,6 +10,11 @@ function highlightWords(wordsToHighlight) {
   });
   highlightedElements = [];
   currentHighlightIndex = -1;
+
+  if (!wordsToHighlight || wordsToHighlight.length === 0) {
+    console.log('No words to highlight');
+    return;
+  }
 
   const regex = new RegExp(wordsToHighlight.join("|"), "gi");
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -37,35 +44,53 @@ function highlightWords(wordsToHighlight) {
 
     node.parentNode.replaceChild(fragment, node);
   });
+
+  console.log(`Highlighted ${highlightedElements.length} elements`);
 }
 
 function scrollToNextHighlight() {
-  if (highlightedElements.length === 0) return;
+  if (highlightedElements.length === 0) {
+    console.log('No highlights to scroll to');
+    return;
+  }
 
   currentHighlightIndex = (currentHighlightIndex + 1) % highlightedElements.length;
   const element = highlightedElements[currentHighlightIndex];
   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  console.log(`Scrolled to highlight ${currentHighlightIndex + 1} of ${highlightedElements.length}`);
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  console.log('Received message:', request);
   if (request.action === "updateHighlights") {
     chrome.storage.sync.get(['wordsToHighlight'], function(result) {
+      if (chrome.runtime.lastError) {
+        console.error('Error getting from storage:', chrome.runtime.lastError);
+        return;
+      }
       if (result.wordsToHighlight) {
         highlightWords(result.wordsToHighlight);
+      } else {
+        console.log('No words to highlight found in storage');
       }
     });
-  }
-});
-
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.command === "next-highlight") {
+  } else if (request.command === "next-highlight") {
     scrollToNextHighlight();
   }
+  sendResponse({status: "ok"});
 });
 
 // Initial highlight
 chrome.storage.sync.get(['wordsToHighlight'], function(result) {
+  if (chrome.runtime.lastError) {
+    console.error('Error getting from storage:', chrome.runtime.lastError);
+    return;
+  }
   if (result.wordsToHighlight) {
     highlightWords(result.wordsToHighlight);
+  } else {
+    console.log('No words to highlight found in storage');
   }
 });
+
+console.log('Content script loaded');

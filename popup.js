@@ -2,6 +2,10 @@ let wordsToHighlight = [];
 
 function updateWordList() {
   const wordList = document.getElementById('wordList');
+  if (!wordList) {
+    console.error('Word list element not found');
+    return;
+  }
   wordList.innerHTML = '';
   wordsToHighlight.forEach((word, index) => {
     const li = document.createElement('li');
@@ -17,12 +21,21 @@ function updateWordList() {
 }
 
 function addWord() {
-  const newWord = document.getElementById('newWord').value.trim();
+  const newWordInput = document.getElementById('newWord');
+  if (!newWordInput) {
+    console.error('New word input element not found');
+    return;
+  }
+  const newWord = newWordInput.value.trim();
   if (newWord && !wordsToHighlight.includes(newWord)) {
     wordsToHighlight.push(newWord);
     chrome.storage.sync.set({wordsToHighlight: wordsToHighlight}, function() {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving to storage:', chrome.runtime.lastError);
+        return;
+      }
       updateWordList();
-      document.getElementById('newWord').value = '';
+      newWordInput.value = '';
       updateActiveTab();
     });
   }
@@ -31,6 +44,10 @@ function addWord() {
 function removeWord(index) {
   wordsToHighlight.splice(index, 1);
   chrome.storage.sync.set({wordsToHighlight: wordsToHighlight}, function() {
+    if (chrome.runtime.lastError) {
+      console.error('Error saving to storage:', chrome.runtime.lastError);
+      return;
+    }
     updateWordList();
     updateActiveTab();
   });
@@ -39,15 +56,17 @@ function removeWord(index) {
 function updateActiveTab() {
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     if (chrome.runtime.lastError) {
-      console.error(chrome.runtime.lastError);
+      console.error('Error querying tabs:', chrome.runtime.lastError);
       return;
     }
     if (tabs[0]) {
       chrome.tabs.sendMessage(tabs[0].id, {action: "updateHighlights"}, function(response) {
         if (chrome.runtime.lastError) {
-          console.error(chrome.runtime.lastError);
+          console.error('Error sending message to tab:', chrome.runtime.lastError);
         }
       });
+    } else {
+      console.error('No active tab found');
     }
   });
 }
@@ -62,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   chrome.storage.sync.get(['wordsToHighlight'], function(result) {
     if (chrome.runtime.lastError) {
-      console.error(chrome.runtime.lastError);
+      console.error('Error getting from storage:', chrome.runtime.lastError);
       return;
     }
     if (result.wordsToHighlight) {
