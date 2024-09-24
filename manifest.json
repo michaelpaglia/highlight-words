@@ -5,19 +5,15 @@
   "description": "Highlights specific words or phrases on webpages with keyboard navigation",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": ["content.js"]
-    }
-  ],
   "background": {
     "service_worker": "background.js"
   },

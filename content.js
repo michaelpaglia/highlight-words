@@ -1,9 +1,9 @@
-
-// content.js
 let highlightedElements = [];
 let currentHighlightIndex = -1;
 
 function highlightWords(wordsToHighlight) {
+  console.log('Highlighting words:', wordsToHighlight);
+
   // Clear previous highlights
   highlightedElements.forEach(el => {
     el.outerHTML = el.textContent;
@@ -81,16 +81,30 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 // Initial highlight
-chrome.storage.sync.get(['wordsToHighlight'], function(result) {
-  if (chrome.runtime.lastError) {
-    console.error('Error getting from storage:', chrome.runtime.lastError);
-    return;
-  }
-  if (result.wordsToHighlight) {
-    highlightWords(result.wordsToHighlight);
-  } else {
-    console.log('No words to highlight found in storage');
-  }
-});
+function initialHighlight() {
+  console.log('Initializing highlight');
+  chrome.storage.sync.get(['wordsToHighlight'], function(result) {
+    if (chrome.runtime.lastError) {
+      console.error('Error getting from storage:', chrome.runtime.lastError);
+      return;
+    }
+    if (result.wordsToHighlight) {
+      console.log('Words to highlight found:', result.wordsToHighlight);
+      highlightWords(result.wordsToHighlight);
+    } else {
+      console.log('No words to highlight found in storage');
+    }
+  });
+}
+
+// Run initial highlight when the content script loads
+initialHighlight();
+
+// Also run initial highlight when the DOM is fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialHighlight);
+} else {
+  initialHighlight();
+}
 
 console.log('Content script loaded');

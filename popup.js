@@ -34,6 +34,7 @@ function addWord() {
         console.error('Error saving to storage:', chrome.runtime.lastError);
         return;
       }
+      console.log('Words saved to storage:', wordsToHighlight);
       updateWordList();
       newWordInput.value = '';
       updateActiveTab();
@@ -48,6 +49,7 @@ function removeWord(index) {
       console.error('Error saving to storage:', chrome.runtime.lastError);
       return;
     }
+    console.log('Words saved to storage after removal:', wordsToHighlight);
     updateWordList();
     updateActiveTab();
   });
@@ -60,9 +62,12 @@ function updateActiveTab() {
       return;
     }
     if (tabs[0]) {
+      console.log('Sending updateHighlights message to tab:', tabs[0].id);
       chrome.tabs.sendMessage(tabs[0].id, {action: "updateHighlights"}, function(response) {
         if (chrome.runtime.lastError) {
           console.error('Error sending message to tab:', chrome.runtime.lastError);
+        } else {
+          console.log('Message sent successfully, response:', response);
         }
       });
     } else {
@@ -72,6 +77,7 @@ function updateActiveTab() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('Popup DOM loaded');
   const addButton = document.getElementById('addWord');
   if (addButton) {
     addButton.addEventListener('click', addWord);
@@ -86,7 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (result.wordsToHighlight) {
       wordsToHighlight = result.wordsToHighlight;
+      console.log('Words loaded from storage:', wordsToHighlight);
       updateWordList();
+    } else {
+      console.log('No words found in storage');
     }
   });
 });
