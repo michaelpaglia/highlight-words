@@ -1,3 +1,4 @@
+// content.js
 let highlightedElements = [];
 let currentHighlightIndex = -1;
 
@@ -60,25 +61,31 @@ function scrollToNextHighlight() {
   console.log(`Scrolled to highlight ${currentHighlightIndex + 1} of ${highlightedElements.length}`);
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+function handleMessage(request, sender, sendResponse) {
   console.log('Received message:', request);
   if (request.action === "updateHighlights") {
     chrome.storage.sync.get(['wordsToHighlight'], function(result) {
       if (chrome.runtime.lastError) {
         console.error('Error getting from storage:', chrome.runtime.lastError);
+        sendResponse({status: "error", message: "Failed to get words from storage"});
         return;
       }
       if (result.wordsToHighlight) {
         highlightWords(result.wordsToHighlight);
+        sendResponse({status: "success", message: "Highlights updated"});
       } else {
         console.log('No words to highlight found in storage');
+        sendResponse({status: "warning", message: "No words to highlight"});
       }
     });
+    return true;  // Indicates that the response is sent asynchronously
   } else if (request.command === "next-highlight") {
     scrollToNextHighlight();
+    sendResponse({status: "success", message: "Scrolled to next highlight"});
   }
-  sendResponse({status: "ok"});
-});
+}
+
+chrome.runtime.onMessage.addListener(handleMessage);
 
 // Initial highlight
 function initialHighlight() {

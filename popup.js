@@ -55,7 +55,7 @@ function removeWord(index) {
   });
 }
 
-function updateActiveTab() {
+function updateActiveTab(retryCount = 0) {
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     if (chrome.runtime.lastError) {
       console.error('Error querying tabs:', chrome.runtime.lastError);
@@ -66,6 +66,12 @@ function updateActiveTab() {
       chrome.tabs.sendMessage(tabs[0].id, {action: "updateHighlights"}, function(response) {
         if (chrome.runtime.lastError) {
           console.error('Error sending message to tab:', chrome.runtime.lastError);
+          if (retryCount < 3) {
+            console.log(`Retrying... Attempt ${retryCount + 1}`);
+            setTimeout(() => updateActiveTab(retryCount + 1), 1000);
+          } else {
+            console.error('Failed to send message after 3 attempts');
+          }
         } else {
           console.log('Message sent successfully, response:', response);
         }
@@ -94,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
       wordsToHighlight = result.wordsToHighlight;
       console.log('Words loaded from storage:', wordsToHighlight);
       updateWordList();
+      updateActiveTab();  // Update highlights when popup opens
     } else {
       console.log('No words found in storage');
     }
