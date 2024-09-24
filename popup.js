@@ -1,3 +1,4 @@
+// popup.js
 let wordsToHighlight = [];
 
 function updateWordList() {
@@ -55,31 +56,71 @@ function removeWord(index) {
   });
 }
 
-function updateActiveTab(retryCount = 0) {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (chrome.runtime.lastError) {
-      console.error('Error querying tabs:', chrome.runtime.lastError);
+async function updateActiveTab() {
+  try {
+    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    if (!tab) {
+      console.error('No active tab found');
       return;
     }
-    if (tabs[0]) {
-      console.log('Sending updateHighlights message to tab:', tabs[0].id);
-      chrome.tabs.sendMessage(tabs[0].id, {action: "updateHighlights"}, function(response) {
-        if (chrome.runtime.lastError) {
-          console.error('Error sending message to tab:', chrome.runtime.lastError);
-          if (retryCount < 3) {
-            console.log(`Retrying... Attempt ${retryCount + 1}`);
-            setTimeout(() => updateActiveTab(retryCount + 1), 1000);
-          } else {
-            console.error('Failed to send message after 3 attempts');
-          }
-        } else {
-          console.log('Message sent successfully, response:', response);
-        }
-      });
-    } else {
-      console.error('No active tab found');
-    }
+
+    await chrome.scripting.executeScript({
+      target: {tabId: tab.id},
+      func: highlightWordsInPage,
+      args: [wordsToHighlight],
+    });
+
+    console.log('Highlighting script executed successfully');
+  } catch (error) {
+    console.error('Error executing script:', error);
+  }
+}
+
+// This function will be injected into the page
+function highlightWordsInPage(wordsToHighlight) {
+  console.log('Highlighting words:', wordsToHighlight);
+
+  // Clear previous highlights
+  const previousHighlights = document.querySelectorAll('span.extension-highlight');
+  previousHighlights.forEach(el => {
+    el.outerHTML = el.textContent;
   });
+
+  if (!wordsToHighlight || wordsToHighlight.length === 0) {
+    console.log('No words to highlight');
+    return;
+  }
+
+  const regex = new RegExp(wordsToHighlight.join("|"), "gi");
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodesToReplace = [];
+
+  while (walker.nextNode()) {
+    if (regex.test(walker.currentNode.textContent)) {
+      nodesToReplace.push(walker.currentNode);
+    }
+  }
+
+  nodesToReplace.forEach(node => {
+    const fragment = document.createDocumentFragment();
+    const parts = node.textContent.split(regex);
+    const matches = node.textContent.match(regex);
+
+    parts.forEach((part, index) => {
+      fragment.appendChild(document.createTextNode(part));
+      if (index < matches.length) {
+        const span = document.createElement("span");
+        span.className = 'extension-highlight';
+        span.style.backgroundColor = "yellow";
+        span.textContent = matches[index];
+        fragment.appendChild(span);
+      }
+    });
+
+    node.parentNode.replaceChild(fragment, node);
+  });
+
+  console.log(`Highlighted ${nodesToReplace.length} text nodes`);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
