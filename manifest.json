@@ -1,21 +1,33 @@
 {
-    "manifest_version": 3,
-    "name": "Word and phrase highlighter",
-    "version": "1.0",
-    "description": "Highlights specific words or phrases, made to assist in Coding Crew DLA production queues.",
-    "permissions": [
-      "storage",
-      "activeTab"
-    ],
-    "action": {
-      "default_popup": "popup.html"
-    },
-    "content_scripts": [
-      {
-        "matches": [
-          "<all_urls>"
-        ],
-        "js": ["content.js"]
-      }
-    ]
+  "manifest_version": 3,
+  "name": "Word Highlighter",
+  "version": "1.0",
+  "description": "Highlights specific words or phrases on webpages with keyboard navigation",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "next-highlight": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Scroll to next highlighted word"
+    }
   }
+}
